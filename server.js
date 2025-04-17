@@ -7,12 +7,13 @@ const port = process.env.PORT || 5000;
 const connectMongoDB = require("./Configs/ConfigDB");
 const UserRoute= require("./Routes/UserRoute");
 const DefaultRoute= require("./Routes/DefaultRoute");
-
+const SearchRoute= require("./Routes/SearchRouth");
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use("/", DefaultRoute);
 app.use("/api/auth", UserRoute);
+app.use("/api/auth", SearchRoute);
 app.listen(port, (error) => {
   if (error) {
     console.log(error.message, "Server Failed to Start");

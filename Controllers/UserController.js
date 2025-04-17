@@ -3,48 +3,48 @@ const bcrypt = require("bcryptjs");
 const { token } = require("../Configs/JwtToken");
 const generateToken = token;
 
-
 // account creation function
 const userRegister = async (req, res) => {
-  const {
-    name,
-    email,
-    password,
-  } = req.body;
-  console.log(name,email,password);
-  
+  const { name, email, password } = req.body;
+
   try {
-    if (name && email && password) {
-      //Checking user already registered in DB
-      const user = await User.findOne({ email });
-      //if already registered
-      if (user) {
-        res
-          .status(402)
-          .json({ message: "User already registered Please try login" });
-      } else {
-        //if not found in db proceed to create account
-        const newUser = User({ name, email, password });
-        await newUser.save();
-        res
-          .status(201)
-          .json({ message: "Account Created Successfully", newUser });
-      }
-    } else {
-      res
+    if (!name || !email || !password) {
+      return res
         .status(406)
         .json({ message: "Please Provide all the Necessary Info to Proceed" });
     }
+
+    //Checking user already registered in DB
+    const user = await User.findOne({ email: email });
+
+    //if already registered
+    if (user) {
+      return res
+        .status(409)
+        .json({ message: "User already registered. Please try login" });
+    }
+
+    //if not found in db proceed to create account
+    const newUser = new User({
+      name,
+      email,
+      password,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      message: "Account Created Successfully",
+    });
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 //user login validation with DB and create JWT token
 const userLogin = async (req, res) => {
   const { email, password } = req.body;
-  
+
   try {
     if (email && password) {
       //Checking user already registered in DB
@@ -64,18 +64,11 @@ const userLogin = async (req, res) => {
           const token = await generateToken(user);
           user.token = token;
           await user.save();
-          res
-            .status(200)
-            .json({
-              message: "Login Successfully",
-              token: token,
-              userid: user._id,
-              role: user.role,
-              firstName: user.firstName?user.firstName: false,
-              lastName: user.lastName?user.lastName: false,
-              username: user.username,
-              email: user.email,
-            });
+          res.status(200).json({
+            message: "Login Successfully",
+            token: token,
+           
+          });
         } else {
           res
             .status(401)
@@ -111,51 +104,78 @@ const userAccountDetails = async (req, res) => {
       phone: user.account?.phone || false,
       address: user.account?.address || false,
       emergencyContact: user.account?.emergencyContact || false,
-      CheckInDate: user.account?.CheckInDate ? new Date(user.account.CheckInDate).toISOString().split('T')[0] : false,
-      CheckOutDate: user.account?.CheckOutDate ? new Date(user.account.CheckOutDate).toISOString().split('T')[0] : false
-    }
+      CheckInDate: user.account?.CheckInDate
+        ? new Date(user.account.CheckInDate).toISOString().split("T")[0]
+        : false,
+      CheckOutDate: user.account?.CheckOutDate
+        ? new Date(user.account.CheckOutDate).toISOString().split("T")[0]
+        : false,
+    };
     res.status(200).json({ accountDetails });
-  }
-    catch (error) {
+  } catch (error) {
     console.log(error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 //account update function
 const userAccountUpdate = async (req, res) => {
   const { id } = req.params;
   console.log(id);
-  
+
   const { accountDetails } = req.body;
   const account = accountDetails;
   console.log(account);
-  
-  
-  const { firstName,lastName, phone, address, emergencyContact, CheckInDate, CheckOutDate } =
-    account;
+
+  const {
+    firstName,
+    lastName,
+    phone,
+    address,
+    emergencyContact,
+    CheckInDate,
+    CheckOutDate,
+  } = account;
   try {
     const user = await User.findById(id);
     if (!user) {
       res.status(404).json({ message: "User not found" });
     }
     const roomAssignment = await RoomAssignment.findOne({ residentId: id });
-    
+
     // Update user account details
-    if (firstName || lastName || phone || address || emergencyContact || CheckInDate || CheckOutDate) {
+    if (
+      firstName ||
+      lastName ||
+      phone ||
+      address ||
+      emergencyContact ||
+      CheckInDate ||
+      CheckOutDate
+    ) {
       user.account = {
-      ...(user.account || {}), // Keep existing data if any
-      ...(firstName && typeof firstName === 'string' && { firstName }),
-      ...(lastName && typeof lastName === 'string' && { lastName }),
-      ...(phone && !isNaN(phone) && { phone: Number(phone) }),
-      ...(address && typeof address === 'string' && { address }),
-      ...(emergencyContact && !isNaN(emergencyContact) && { emergencyContact: Number(emergencyContact) }),
-      ...(CheckInDate && !isNaN(new Date(CheckInDate).getTime()) && { CheckInDate: new Date(CheckInDate) }),
-      ...(CheckOutDate && !isNaN(new Date(CheckOutDate).getTime()) && { CheckOutDate: new Date(CheckOutDate) }),
+        ...(user.account || {}), // Keep existing data if any
+        ...(firstName && typeof firstName === "string" && { firstName }),
+        ...(lastName && typeof lastName === "string" && { lastName }),
+        ...(phone && !isNaN(phone) && { phone: Number(phone) }),
+        ...(address && typeof address === "string" && { address }),
+        ...(emergencyContact &&
+          !isNaN(emergencyContact) && {
+            emergencyContact: Number(emergencyContact),
+          }),
+        ...(CheckInDate &&
+          !isNaN(new Date(CheckInDate).getTime()) && {
+            CheckInDate: new Date(CheckInDate),
+          }),
+        ...(CheckOutDate &&
+          !isNaN(new Date(CheckOutDate).getTime()) && {
+            CheckOutDate: new Date(CheckOutDate),
+          }),
       };
     } else {
-      return res.status(400).json({ message: "At least one field is required for update" });
+      return res
+        .status(400)
+        .json({ message: "At least one field is required for update" });
     }
 
     await user.save();
@@ -167,18 +187,16 @@ const userAccountUpdate = async (req, res) => {
     res
       .status(200)
       .json({ message: "User Account Updated Successfully", user });
-     
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 module.exports = {
   userRegister,
   userLogin,
- 
+
   userAccountUpdate,
   userAccountDetails,
 };
