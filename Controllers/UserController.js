@@ -67,7 +67,6 @@ const userLogin = async (req, res) => {
           res.status(200).json({
             message: "Login Successfully",
             token: token,
-           
           });
         } else {
           res
@@ -92,25 +91,14 @@ const userAccountDetails = async (req, res) => {
   try {
     const user = await User.findById(id);
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     const accountDetails = {
-      username: user.username || false,
-      email: user.email || false,
-      role: user.role || false,
-      preferences: user.preferences || false,
-      firstName: user.account?.firstName || false,
-      lastName: user.account?.lastName || false,
-      phone: user.account?.phone || false,
-      address: user.account?.address || false,
-      emergencyContact: user.account?.emergencyContact || false,
-      CheckInDate: user.account?.CheckInDate
-        ? new Date(user.account.CheckInDate).toISOString().split("T")[0]
-        : false,
-      CheckOutDate: user.account?.CheckOutDate
-        ? new Date(user.account.CheckOutDate).toISOString().split("T")[0]
-        : false,
+      name: user.name,
+      email: user.email || null,
+      credits: user.credits,
     };
+
     res.status(200).json({ accountDetails });
   } catch (error) {
     console.log(error.message);
@@ -121,72 +109,24 @@ const userAccountDetails = async (req, res) => {
 //account update function
 const userAccountUpdate = async (req, res) => {
   const { id } = req.params;
-  console.log(id);
 
-  const { accountDetails } = req.body;
-  const account = accountDetails;
-  console.log(account);
+  const { name } = req.body;
 
-  const {
-    firstName,
-    lastName,
-    phone,
-    address,
-    emergencyContact,
-    CheckInDate,
-    CheckOutDate,
-  } = account;
   try {
     const user = await User.findById(id);
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
-    const roomAssignment = await RoomAssignment.findOne({ residentId: id });
 
     // Update user account details
-    if (
-      firstName ||
-      lastName ||
-      phone ||
-      address ||
-      emergencyContact ||
-      CheckInDate ||
-      CheckOutDate
-    ) {
-      user.account = {
-        ...(user.account || {}), // Keep existing data if any
-        ...(firstName && typeof firstName === "string" && { firstName }),
-        ...(lastName && typeof lastName === "string" && { lastName }),
-        ...(phone && !isNaN(phone) && { phone: Number(phone) }),
-        ...(address && typeof address === "string" && { address }),
-        ...(emergencyContact &&
-          !isNaN(emergencyContact) && {
-            emergencyContact: Number(emergencyContact),
-          }),
-        ...(CheckInDate &&
-          !isNaN(new Date(CheckInDate).getTime()) && {
-            CheckInDate: new Date(CheckInDate),
-          }),
-        ...(CheckOutDate &&
-          !isNaN(new Date(CheckOutDate).getTime()) && {
-            CheckOutDate: new Date(CheckOutDate),
-          }),
-      };
-    } else {
-      return res
-        .status(400)
-        .json({ message: "At least one field is required for update" });
-    }
+    user.name = name;
+    user.updatedAt = new Date();
 
     await user.save();
-    if (roomAssignment) {
-      roomAssignment.checkInDate = new Date(account.CheckInDate);
-      roomAssignment.checkOutDate = new Date(account.CheckOutDate);
-      await roomAssignment.save();
-    }
+
     res
       .status(200)
-      .json({ message: "User Account Updated Successfully", user });
+      .json({ message: "User Account Detail Updated Successfully" });
   } catch (error) {
     console.log(error.message);
     res.status(500).json({ message: "Internal server error" });
@@ -196,7 +136,6 @@ const userAccountUpdate = async (req, res) => {
 module.exports = {
   userRegister,
   userLogin,
-
   userAccountUpdate,
   userAccountDetails,
 };

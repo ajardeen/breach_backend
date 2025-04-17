@@ -1,13 +1,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const cors = require('cors');
+const cors = require("cors");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 const connectMongoDB = require("./Configs/ConfigDB");
-const UserRoute= require("./Routes/UserRoute");
-const DefaultRoute= require("./Routes/DefaultRoute");
-const SearchRoute= require("./Routes/SearchRouth");
+const UserRoute = require("./Routes/UserRoute");
+const DefaultRoute = require("./Routes/DefaultRoute");
+const SearchRoute = require("./Routes/SearchRouth");
 
 app.use(cors());
 app.use(bodyParser.json());
