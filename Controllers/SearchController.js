@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../Models/UserModel');
-
+const { default: axios } = require('axios');
+require("dotenv").config();
 
 const search = async (req, res) => {
     const { searchQuery,id } = req.body;
@@ -20,38 +21,22 @@ const search = async (req, res) => {
       if (credits < 1) {
         return res.status(402).json({ message: "Insufficient credits" });
       }
-      // Search api goes here 
-      // const response = await fetch(`https://api.pwnedpasswords.com/range/${searchQuery}`);
-
-
-      const sampleResponse = {
-        status: "success",
-        message: "Data found in breaches",
-        data: [
-          {
-            email: searchQuery,
-            breaches: [
-              {
-                breach_source: "Some Leak Database",
-                breach_date: "2023-02-10",
-                leaked_info: {
-                  password: "hashed_password",
-                  username: "exampleUser",
-                  phone_number: "+1234567890"
-                }
-              },
-              {
-                breach_source: "Another Leak Database",
-                breach_date: "2021-08-15",
-                leaked_info: {
-                  password: "hashed_password_2",
-                  address: "123 Street Name, City, Country"
-                }
-              }
-            ]
-          }
-        ]
+      
+      const apiToken = process.env.API_KEY;
+      const apiUrl = process.env.API_URL;
+      const requestData = {
+          token: apiToken,
+          request: searchQuery,
+          limit: 100,
+          lang: "en",
+          type: "json"
       };
+
+      const response = await axios.post(apiUrl, requestData);
+      const data = response.data;
+
+
+     
       // Update the user's credits
       user.credits -= 1;
       await user.save();
@@ -59,7 +44,8 @@ const search = async (req, res) => {
       res.status(200).json({
         message: "Search Result",
         searchQuery: searchQuery,
-        sampleResponse
+        data,
+        credits: user.credits
       });
     } catch (error) {
       console.log(error.message);
